@@ -17,20 +17,6 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v3
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 21
-
-      - run: chmod +x ./gradlew
-
-      - name: Run tests
-        run: ./gradlew test
-
-      - name: Build JAR
-        run: ./gradlew build
-
       - name: Docker login
         uses: docker/login-action@v3
         with:
@@ -42,4 +28,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: sunwoo11/keywe_hospital_service:latest
+          tags: sunwoo11/keywe_aries_cloud_agent:latest
