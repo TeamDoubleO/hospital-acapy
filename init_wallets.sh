@@ -1,11 +1,12 @@
 #!/bin/bash
 
-echo "🩺 병원 지갑 및 peer DID 생성 시작"
+echo ">>Wallets & DIDs Creation Started"
+echo "{" > /hospital_tokens.json
 
 while read hospital_name; do
-  echo "📁 테넌트 지갑 생성: $hospital_name"
+  echo ">>테넌트 지갑 생성: $hospital_name"
 
-  WALLET_RES=$(curl -s -X POST http://localhost:8001/multitenancy/wallet \
+  WALLET_RES=$(curl -s -X POST http://localhost:8002/multitenancy/wallet \
     -H "Content-Type: application/json" \
     -d '{
       "wallet_name": "'"$hospital_name"'",
@@ -17,21 +18,29 @@ while read hospital_name; do
 
   TOKEN=$(echo "$WALLET_RES" | jq -r '.token')
 
-  echo "🔐 peer DID 생성 (did:peer:4): $hospital_name"
-  DID_RES=$(curl -s -X POST http://localhost:8001/wallet/did/create \
+
+  echo ">>Peer DID 생성: $hospital_name"
+  DID_RES=$(curl -s -X POST http://localhost:8002/wallet/did/create \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     -d '{
-      "method": "did:peer:4",
+      "method": "did:peer:2",
       "options": {
         "key_type": "ed25519",
-        "peer": { "numalgo": 4 }
+        "peer": { "numalgo": 2 }
       }
     }')
 
   DID=$(echo "$DID_RES" | jq -r '.result.did')
-  echo "✅ DID 저장 완료: $hospital_name → $DID"
+  echo ">>DID 저장 완료: $hospital_name → $DID"
 
+  # JSON 파일에 병원 이름별 토큰 저장 (JSON 안전 인코딩 포함)
+  echo "  \"${hospital_name}\": \"${TOKEN}\"," >> /hospital_tokens.json
+  echo "================================================================="
 done < /hospitals.txt
 
-echo "🎉 모든 병원 지갑 및 DID 생성 완료"
+# JSON 마지막 쉼표 제거 + 닫기
+sed -i '$ s/,$//' /hospital_tokens.json
+echo "}" >> /hospital_tokens.json
+
+echo ">>All wallets & DIDs creation completed"

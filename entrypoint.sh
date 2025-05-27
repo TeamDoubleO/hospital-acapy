@@ -1,9 +1,10 @@
 #!/bin/bash
 
 aca-py start \
-  --inbound-transport http 0.0.0.0 8000 \
+
+  --inbound-transport http 0.0.0.0 8005 \
   --outbound-transport http \
-  --admin 0.0.0.0 8001 \
+  --admin 0.0.0.0 8002 \
   --admin-insecure-mode \
   --wallet-type askar \
   --wallet-name base_wallet \
