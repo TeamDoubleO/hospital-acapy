@@ -28,4 +28,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: sunwoo11/keywe_aries_cloud_agent:latest
+          tags: sunwoo11/keywe_hospital-acapy:latest
