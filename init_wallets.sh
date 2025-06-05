@@ -1,46 +1,66 @@
 #!/bin/bash
+set -e
 
-echo ">>Wallets & DIDs Creation Started"
-echo "{" > /hospital_tokens.json
+echo ">> Wallets & DIDs Creation Started"
+echo "{" > /data/hospital_tokens.json
+sed -i 's/\r$//' /data/hospital.csv
 
-while read hospital_name; do
-  echo ">>테넌트 지갑 생성: $hospital_name"
+tail -n +2 /data/hospital.csv | while IFS=',' read -r hospital_kor hospital_code hospital_wallet_key; do
+  hospital_kor=$(echo "$hospital_kor"  | xargs)
+  hospital_code=$(echo "$hospital_code" | xargs)
+  hospital_code_lower=${hospital_code,,}
+  hospital_wallet_key=$(echo "$hospital_wallet_key" | xargs)
 
+  echo ">> 테넌트 지갑 생성: $hospital_kor ($hospital_code)"
   WALLET_RES=$(curl -s -X POST http://localhost:8002/multitenancy/wallet \
     -H "Content-Type: application/json" \
     -d '{
-      "wallet_name": "'"$hospital_name"'",
-      "wallet_key": "key'"$hospital_name"'",
+      "wallet_name": "'"$hospital_code"'",
+      "wallet_key":  "'"$hospital_wallet_key"'",
       "wallet_type": "askar",
-      "label": "'"$hospital_name"'",
-      "wallet_dispatch_type": "default"
+      "label":       "'"$hospital_kor"'",
+      "wallet_dispatch_type": "default",
+      "wallet_endpoint": "http://localhost:8002"
     }')
 
-  TOKEN=$(echo "$WALLET_RES" | jq -r '.token')
+  if ! echo "$WALLET_RES" | jq -e . >/dev/null; then
+    echo "Wallet 생성 오류: $WALLET_RES"
+    exit 1
+  fi
+  TOKEN=$(echo "$WALLET_RES" | jq -r .token)
 
-
-  echo ">>Peer DID 생성: $hospital_name"
-  DID_RES=$(curl -s -X POST http://localhost:8002/wallet/did/create \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "method": "did:peer:2",
-      "options": {
-        "key_type": "ed25519",
-        "peer": { "numalgo": 2 }
-      }
-    }')
-
-  DID=$(echo "$DID_RES" | jq -r '.result.did')
-  echo ">>DID 저장 완료: $hospital_name → $DID"
-
-  # JSON 파일에 병원 이름별 토큰 저장 (JSON 안전 인코딩 포함)
-  echo "  \"${hospital_name}\": \"${TOKEN}\"," >> /hospital_tokens.json
+#  echo ">> Peer DID 생성: $hospital_kor"
+#  DID_RES=$(curl -X POST http://localhost:8002/wallet/did/create \
+#    -H "Authorization: Bearer $TOKEN" \
+#    -H "Content-Type: application/json" \
+#    -d '{
+#      "method": "did:peer:2",
+#      "options": {
+#        "key_type":"ed25519",
+#        "peer": { "numalgo":2 }
+#      },
+#      "service": [
+#                {
+#                  "id": "#didcomm-0",
+#                  "type": "did-communication",
+#                  "recipientKeys": ["#key-1"],
+#                  "routingKeys": [],
+#                  "serviceEndpoint": "http://hospital-acapy-agent:8005"
+#                }
+#              ]
+#
+#    }')
+#
+#  DID=$(echo "$DID_RES" | jq -r .result.did)
+#
+#
+#  echo ">> DID 저장 완료: $hospital_kor → $DID"
+  echo "  \"${hospital_code}\": \"${TOKEN}\"," >> /data/hospital_tokens.json
   echo "================================================================="
-done < /hospitals.txt
+done
 
-# JSON 마지막 쉼표 제거 + 닫기
-sed -i '$ s/,$//' /hospital_tokens.json
-echo "}" >> /hospital_tokens.json
+# 마지막 쉼표 제거 및 JSON 마무리
+sed -i '$ s/,$//' /data/hospital_tokens.json
+echo "}" >> /data/hospital_tokens.json
 
-echo ">>All wallets & DIDs creation completed"
+echo ">> All wallets & DIDs creation completed"

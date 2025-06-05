@@ -7,6 +7,6 @@ RUN apt update && apt install -y jq curl
 
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
 COPY --chmod=755 init_wallets.sh /init_wallets.sh
-COPY hospitals.txt /hospitals.txt
+COPY data/hospital.csv         /data/hospital.csv
 
 ENTRYPOINT ["/entrypoint.sh"]
