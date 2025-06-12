@@ -67,10 +67,11 @@ echo "}" >> /data/hospital_tokens.json
 
 echo ">> Sending tokens to tenant-service..."
 
-# tenant-service 로 token update POST 요청
-HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://tenant-service:60007/update \
+# tenant-service 로 token update POST 요청 (압축 JSON 사용)
+HTTP_RESPONSE=$(jq -c . ./data/hospital_tokens.json | \
+  curl -s -o /dev/null -w "%{http_code}" -X POST http://tenant-service:60007/update \
   -H "Content-Type: application/json" \
-  -d @"./data/hospital_tokens.json")
+  -d @-)
 
 if [ "$HTTP_RESPONSE" -eq 200 ]; then
   echo "✅ Tokens successfully updated to tenant-service"
