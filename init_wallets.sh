@@ -23,6 +23,8 @@ tail -n +2 /data/hospital.csv | while IFS=',' read -r hospital_kor hospital_code
       "wallet_endpoint": "http://localhost:8002"
     }')
 
+
+
   if ! echo "$WALLET_RES" | jq -e . >/dev/null; then
     echo "Wallet 생성 오류: $WALLET_RES"
     exit 1
@@ -62,5 +64,19 @@ done
 # 마지막 쉼표 제거 및 JSON 마무리
 sed -i '$ s/,$//' /data/hospital_tokens.json
 echo "}" >> /data/hospital_tokens.json
+
+echo ">> Sending tokens to tenant-service..."
+
+# tenant-service 로 token update POST 요청
+HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://tenant-service:60007/update \
+  -H "Content-Type: application/json" \
+  -d @"./data/hospital_tokens.json")
+
+if [ "$HTTP_RESPONSE" -eq 200 ]; then
+  echo "✅ Tokens successfully updated to tenant-service"
+else
+  echo "❌ Failed to update tokens. HTTP status code: $HTTP_RESPONSE"
+  exit 1
+fi
 
 echo ">> All wallets & DIDs creation completed"
